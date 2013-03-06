@@ -15,7 +15,12 @@ QML_IMPORT_PATH =
 # CONFIG += qdeclarative-boostable
 
 # The .cpp file which was generated for your project. Feel free to hack it.
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    music.cpp \
+    slimserverinfo.cpp \
+    slimdevice.cpp \
+    slimdatabasefetch.cpp \
+    slimcli.cpp
 
 # Please do not modify the following two lines. Required for deployment.
 include(qmlapplicationviewer/qmlapplicationviewer.pri)
@@ -23,3 +28,16 @@ qtcAddDeployment()
 
 OTHER_FILES += \
     qml/squeezelitegui/squeezeliteguimain.qml
+
+# Commands to build squeezelite
+#mytarget.commands = make -C my_sub_project
+#QMAKE_EXTRA_TARGETS += mytarget
+#PRE_TARGETDEPS += mytarget
+
+HEADERS += \
+    music.h \
+    squeezedefines.h \
+    slimserverinfo.h \
+    slimdevice.h \
+    slimdatabasefetch.h \
+    slimcli.h

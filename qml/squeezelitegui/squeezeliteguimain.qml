@@ -1,5 +1,5 @@
 import QtQuick 1.1
-import QtQuick 1.0
+//import QtQuick 1.0
 
 Rectangle {
     id: main
@@ -21,12 +21,129 @@ Rectangle {
         id: flipable
         anchors.fill: parent
         property bool flipped: false
-
-        back: Rectangle {
-            id: backRect
-            color: "#00000000"
+        back: Flickable {
+            id: backFlickable
+            flickableDirection: Flickable.HorizontalFlick
             anchors.fill: parent
+
+            Rectangle {
+                id: leftRect
+                color: "#00000000"
+                anchors.right: parent.right
+                anchors.rightMargin: 400
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 0
+                anchors.top: parent.top
+                anchors.topMargin: 0
+
+                ListView {
+                    id: backLeftList
+                    anchors.fill: parent
+                    model: ListModel {
+                        ListElement {
+                            name: "Grey"
+                            colorCode: "grey"
+                        }
+
+                        ListElement {
+                            name: "Red"
+                            colorCode: "red"
+                        }
+
+                        ListElement {
+                            name: "Blue"
+                            colorCode: "blue"
+                        }
+
+                        ListElement {
+                            name: "Green"
+                            colorCode: "green"
+                        }
+                    }
+                    delegate: Item {
+                        x: 5
+                        height: 40
+                        Row {
+                            id: row1
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                color: colorCode
+                            }
+
+                            Text {
+                                text: name
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.bold: true
+                            }
+                            spacing: 10
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: rightRect
+                x: 400
+                y: 0
+                width: 400
+                color: "#00000000"
+                anchors.top: parent.top
+                anchors.topMargin: 0
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.right: parent.right
+                anchors.rightMargin: 0
+
+                ListView {
+                    id: backRightList
+                    anchors.fill: parent
+                    model: ListModel {
+                        ListElement {
+                            name: "Grey"
+                            colorCode: "grey"
+                        }
+
+                        ListElement {
+                            name: "Red"
+                            colorCode: "red"
+                        }
+
+                        ListElement {
+                            name: "Blue"
+                            colorCode: "blue"
+                        }
+
+                        ListElement {
+                            name: "Green"
+                            colorCode: "green"
+                        }
+                    }
+                    delegate: Item {
+                        x: 5
+                        height: 40
+                        Row {
+                            id: row2
+                            Rectangle {
+                                width: 40
+                                height: 40
+                                color: colorCode
+                            }
+
+                            Text {
+                                text: name
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.bold: true
+                            }
+                            spacing: 10
+                        }
+                    }
+                }
+            }
         }
+
         front: Rectangle {
             id: frontRect
             color: "#00000000"
@@ -40,9 +157,11 @@ Rectangle {
                 color: "#00000000"
                 Image {
                     id: coverImage
-                    x: 177
+                    x: 63
+                    y: 5
                     width: 300
                     height: 300
+                    anchors.horizontalCenterOffset: 13
                     anchors.horizontalCenter: parent.horizontalCenter
                     source: "icons/noAlbumImage.png"
                     anchors.top: parent.top
@@ -51,8 +170,8 @@ Rectangle {
 
                 Rectangle {
                     id: rewindRect
-                    x: 31
-                    y: 319
+                    x: 50
+                    y: 338
                     width: 50
                     height: 50
                     color: "#645a5a5a"
@@ -67,15 +186,15 @@ Rectangle {
                         anchors.fill: parent
                     }
                     anchors.rightMargin: 300
-                    anchors.bottomMargin: 25
+                    anchors.bottomMargin: 12
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                 }
 
                 Rectangle {
                     id: playRect
-                    x: 33
-                    y: 310
+                    x: 110
+                    y: 338
                     width: 50
                     height: 50
                     color: "#645a5a5a"
@@ -90,15 +209,15 @@ Rectangle {
                         anchors.fill: parent
                     }
                     anchors.rightMargin: 240
-                    anchors.bottomMargin: 25
+                    anchors.bottomMargin: 12
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                 }
 
                 Rectangle {
                     id: forwardRect
-                    x: 26
-                    y: 311
+                    x: 170
+                    y: 338
                     width: 50
                     height: 50
                     color: "#645a5a5a"
@@ -113,15 +232,15 @@ Rectangle {
                         anchors.fill: parent
                     }
                     anchors.rightMargin: 180
-                    anchors.bottomMargin: 25
+                    anchors.bottomMargin: 12
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                 }
 
                 Rectangle {
                     id: shuffleRect
-                    x: 32
-                    y: 326
+                    x: 330
+                    y: 338
                     width: 50
                     height: 50
                     color: "#645a5a5a"
@@ -135,16 +254,16 @@ Rectangle {
                         source: "icons/play.png"
                         anchors.fill: parent
                     }
-                    anchors.rightMargin: 20
-                    anchors.bottomMargin: 25
+                    anchors.rightMargin: 25
+                    anchors.bottomMargin: 12
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                 }
 
                 Rectangle {
                     id: repeatRect
-                    x: 40
-                    y: 321
+                    x: 270
+                    y: 338
                     width: 50
                     height: 50
                     color: "#645a5a5a"
@@ -158,8 +277,8 @@ Rectangle {
                         source: "icons/play.png"
                         anchors.fill: parent
                     }
-                    anchors.rightMargin: 80
-                    anchors.bottomMargin: 25
+                    anchors.rightMargin: 85
+                    anchors.bottomMargin: 12
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
                 }
@@ -232,6 +351,20 @@ Rectangle {
                         }
                     }
                     z: -1
+                }
+
+                Rectangle {
+                    id: rectangle1
+                    x: 50
+                    y: 313
+                    width: 325
+                    height: 16
+                    color: "#00000000"
+                    border.color: "#7a7a7a"
+                    anchors.right: parent.right
+                    anchors.rightMargin: 25
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 71
                 }
                 anchors.rightMargin: 0
                 anchors.top: parent.top
