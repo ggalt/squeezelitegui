@@ -14,13 +14,21 @@ QML_IMPORT_PATH =
 # Speed up launching on MeeGo/Harmattan when using applauncherd daemon
 # CONFIG += qdeclarative-boostable
 
+# needed for Qt networking and for connecting signals and slots
+QT += network
+QT += declarative
+
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += main.cpp \
     music.cpp \
-    slimserverinfo.cpp \
-    slimdevice.cpp \
-    slimdatabasefetch.cpp \
+    audioplayer.cpp \
     slimcli.cpp
+
+HEADERS += \
+    music.h \
+    squeezedefines.h \
+    audioplayer.h \
+    slimcli.h
 
 # Please do not modify the following two lines. Required for deployment.
 include(qmlapplicationviewer/qmlapplicationviewer.pri)
@@ -34,10 +42,3 @@ OTHER_FILES += \
 #QMAKE_EXTRA_TARGETS += mytarget
 #PRE_TARGETDEPS += mytarget
 
-HEADERS += \
-    music.h \
-    squeezedefines.h \
-    slimserverinfo.h \
-    slimdevice.h \
-    slimdatabasefetch.h \
-    slimcli.h

@@ -46,7 +46,8 @@
 
 // uncomment the following to turn on debugging for a particular file
 // #define SQUEEZEMAINWINDOW_DEBUG
-// #define SLIMCLI_DEBUG
+#define AUDIOPLAYER_DEBUG
+#define SLIMCLI_DEBUG
 // #define SLIMDEVICE_DEBUG
 // #define SLIMDATABASE_DEBUG
 // #define SLIMSERVERINFO_DEBUG
@@ -61,7 +62,7 @@ class SlimServerInfo;
 class SlimDatabaseFetch;
 
 // Path to directories
-#define DATAPATH "/.squeezelitegui/info/"
+#define DATAPATH "/.squeezelitegui/"
 #define DATAFILE "squeezelitegui.dat"
 
 #define DATAVERSION 1       // simply a check to change when we alter the data stored
@@ -109,11 +110,11 @@ enum ResumeMode
 };
 
 
-QDataStream & operator<< (QDataStream& stream, const Album& al);
-QDataStream & operator>> (QDataStream& stream, Album& al);
+//QDataStream & operator<< (QDataStream& stream, const Album& al);
+//QDataStream & operator>> (QDataStream& stream, Album& al);
 
-QDataStream & operator<< (QDataStream& stream, const Artist& art);
-QDataStream & operator>> (QDataStream& stream, Artist& art);
+//QDataStream & operator<< (QDataStream& stream, const Artist& art);
+//QDataStream & operator>> (QDataStream& stream, Artist& art);
 
 // This mapping is for the custom remote
 
