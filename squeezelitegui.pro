@@ -11,26 +11,26 @@ QML_IMPORT_PATH =
 # CONFIG += mobility
 # MOBILITY +=
 
-# Speed up launching on MeeGo/Harmattan when using applauncherd daemon
-# CONFIG += qdeclarative-boostable
-
-# needed for Qt networking and for connecting signals and slots
-QT += network
-QT += declarative
-
 # The .cpp file which was generated for your project. Feel free to hack it.
-SOURCES +=
+SOURCES += main.cpp \
+    slimcli.cpp \
+    playerinterface.cpp \
+    main.cpp \
+    devicestatus.cpp \
+    controllistmodel.cpp \
+    audioplayer.cpp
 
-HEADERS +=
+# Installation path
+# target.path =
 
 # Please do not modify the following two lines. Required for deployment.
-include(qmlapplicationviewer/qmlapplicationviewer.pri)
+include(qtquick2applicationviewer/qtquick2applicationviewer.pri)
 qtcAddDeployment()
 
-OTHER_FILES +=
-
-# Commands to build squeezelite
-#mytarget.commands = make -C my_sub_project
-#QMAKE_EXTRA_TARGETS += mytarget
-#PRE_TARGETDEPS += mytarget
-
+HEADERS += \
+    squeezedefines.h \
+    slimcli.h \
+    playerinterface.h \
+    devicestatus.h \
+    controllistmodel.h \
+    audioplayer.h
