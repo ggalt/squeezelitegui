@@ -19,23 +19,15 @@ QT += network
 QT += declarative
 
 # The .cpp file which was generated for your project. Feel free to hack it.
-SOURCES += main.cpp \
-    music.cpp \
-    audioplayer.cpp \
-    slimcli.cpp
+SOURCES +=
 
-HEADERS += \
-    music.h \
-    squeezedefines.h \
-    audioplayer.h \
-    slimcli.h
+HEADERS +=
 
 # Please do not modify the following two lines. Required for deployment.
 include(qmlapplicationviewer/qmlapplicationviewer.pri)
 qtcAddDeployment()
 
-OTHER_FILES += \
-    qml/squeezelitegui/squeezeliteguimain.qml
+OTHER_FILES +=
 
 # Commands to build squeezelite
 #mytarget.commands = make -C my_sub_project
