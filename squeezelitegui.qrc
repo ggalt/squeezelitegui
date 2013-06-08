@@ -1,0 +1,33 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>qml/squeezelitegui/icons/controlBackground.png</file>
+        <file>qml/squeezelitegui/icons/controlHighlight.png</file>
+        <file>qml/squeezelitegui/icons/downvol.png</file>
+        <file>qml/squeezelitegui/icons/forward.png</file>
+        <file>qml/squeezelitegui/icons/forward_pressed.png</file>
+        <file>qml/squeezelitegui/icons/home.png</file>
+        <file>qml/squeezelitegui/icons/home_pressed.png</file>
+        <file>qml/squeezelitegui/icons/leftArrow.png</file>
+        <file>qml/squeezelitegui/icons/no_shuffle.png</file>
+        <file>qml/squeezelitegui/icons/noAlbumImage.png</file>
+        <file>qml/squeezelitegui/icons/noRepeat.png</file>
+        <file>qml/squeezelitegui/icons/now_playing.png</file>
+        <file>qml/squeezelitegui/icons/now_playing_disabled.png</file>
+        <file>qml/squeezelitegui/icons/now_playing_pressed.png</file>
+        <file>qml/squeezelitegui/icons/pause.png</file>
+        <file>qml/squeezelitegui/icons/pause_pressed.png</file>
+        <file>qml/squeezelitegui/icons/play.png</file>
+        <file>qml/squeezelitegui/icons/play_pressed.png</file>
+        <file>qml/squeezelitegui/icons/repeatAlbum.png</file>
+        <file>qml/squeezelitegui/icons/repeatSong.png</file>
+        <file>qml/squeezelitegui/icons/rewind.png</file>
+        <file>qml/squeezelitegui/icons/rewind_pressed.png</file>
+        <file>qml/squeezelitegui/icons/screen.png</file>
+        <file>qml/squeezelitegui/icons/shuffle.png</file>
+        <file>qml/squeezelitegui/icons/shuffle_by_album.png</file>
+        <file>qml/squeezelitegui/icons/shuffle_by_song.png</file>
+        <file>qml/squeezelitegui/icons/shuffle_pressed.png</file>
+        <file>qml/squeezelitegui/icons/upvol.png</file>
+        <file>qml/squeezelitegui/icons/volRect.png</file>
+    </qresource>
+</RCC>
