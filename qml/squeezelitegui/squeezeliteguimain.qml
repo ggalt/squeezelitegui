@@ -77,6 +77,20 @@ Rectangle {
 
     function setSongDuration(duration) {
         main.trackDur = duration
+        main.durTick = durationRect.width / duration
+    }
+
+    function setupSongTimes(duration,position) {
+        setSongDuration(duration)
+        updateProgress(position)
+    }
+
+    function incrementSongTime() {
+        main.trackTime += 1
+    }
+
+    function setTimeText(timeTxt) {
+        timeText.text = qsTr(timeTxt)
     }
 
     Rectangle {

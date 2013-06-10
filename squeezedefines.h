@@ -62,6 +62,9 @@ class SlimCLI;
 #define LOC_WARN QString( "SqueezeLiteGUI, Warning: ")
 #define LOC_ERR QString( "SqueezeLiteGUI, Error: ")
 
+#define MAX_REQUEST_SIZE 100
+#define MAX_REQUEST_SIZE_TEXT "100"
+
 typedef enum { CLI_DISCONNECTED = 0, CLI_CONNECTED, SETUP_SERVER, SETUP_DEVICES, SETUP_IMAGES, CLI_READY } cliState;
 
 typedef enum { NOLOGIN=101,

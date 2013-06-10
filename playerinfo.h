@@ -58,13 +58,16 @@ signals:
     void NewPlayList(void);
     void Mute(bool m);
     void PlayingTime(QVariant songDuration, QVariant songPlaying);
+    void TimeText(QVariant time);
 
 public slots:
     void processCliMessage(void);
-//    void controlViewClicked(int idx);
-//    void controlViewClicked(QString s);
+
+private slots:
+    void tick(void);
 
 private:
+    void updateTime(void);
     void ErrorMessageSender(QString s);
     void GetTracks(int count=-1);
     playerMode TogglePlayerMode(playerMode p);
@@ -102,7 +105,6 @@ private:
     quint16 m_MaxRequestSize;
 
     QTime m_playerTime;   // how long have we been playing?
-    QTimer m_tick;
 
     SlimCLI *cli;   // need pointer
     QByteArray macAddress;       // NOTE: this is stored in URL escaped form, since that is how we mostly use it.  If you need it in plain text COPY IT to another string and use QUrl::decode() on that string.

@@ -16,9 +16,9 @@ playerInfo::playerInfo(SlimCLI *c, QByteArray mac, QObject *parent) :
     m_deviceRepeatMode = MAX_REPEAT_MODES;
     m_deviceShuffleMode = MAX_SHUFFLE_MODES;
     m_deviceState = UNINITIALIZED;
-    m_songDuration = 0;
+    m_songDuration = 1;
     m_songPlaying = 0;
-    m_MaxRequestSize = 50;
+    m_MaxRequestSize = MAX_REQUEST_SIZE;
     macAddress = mac;
     cli = c;
 }
@@ -34,7 +34,7 @@ void playerInfo::Init(void)
 void playerInfo::processCliMessage(void)
 {
     DEBUGF("")
-    while(cli->MessageAvailable()) {
+            while(cli->MessageAvailable()) {
         QByteArray msg = cli->GetMessage();
 
         QRegExp MACrx("[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]");
@@ -59,6 +59,28 @@ void playerInfo::processCliMessage(void)
             SystemMsgProcessing(msg);
         }
     }
+}
+
+void playerInfo::tick(void)
+{
+    DEBUGF("");
+    if(m_deviceMode == PLAY) {
+        m_songPlaying++;
+        updateTime();
+    }
+}
+
+void playerInfo::updateTime(void)
+{
+    DEBUGF("Duration:" << m_songDuration << "Time:" << m_songPlaying);
+    if(m_songPlaying > m_songDuration)
+        m_songPlaying = m_songDuration;
+
+    emit PlayingTime(m_songDuration,m_songPlaying);
+    emit TimeText(QVariant(QString("%1:%2 / %3:%4").arg(m_songPlaying/60,2,10,'0').arg(m_songPlaying%60,2,10,'0')
+                  .arg(m_songDuration/60,2,10,'0').arg(m_songDuration%60,2,10,'0')));
+    m_deviceCurrentSongTime = QByteArray::number(m_songPlaying);
+    m_deviceCurrentSongDuration = QByteArray::number(m_songDuration);
 }
 
 void playerInfo::processDeviceStatusMsg(QByteArray msg)
@@ -159,7 +181,7 @@ void playerInfo::processPlayerSettingsMsg(QListIterator<QByteArray> &i)
 
 void playerInfo::processPlaylistMsg(QListIterator<QByteArray> &i)
 {
-    DEBUGF("");
+    DEBUGF("START" <<  m_playerTime.elapsed());
     while(i.hasNext()) {
         QString s = QString(i.next());
         if(s.section(':', 0, 0) == "playlist%20index") {
@@ -180,14 +202,17 @@ void playerInfo::processPlaylistMsg(QListIterator<QByteArray> &i)
             m_devicePlayList.last().tracknum = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
         else if(s.section(':', 0, 0) == "year")
             m_devicePlayList.last().year = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
-        else if(s.section(':', 0, 0) == "duration")
-            m_devicePlayList.last().duration = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
+        else if(s.section(':', 0, 0) == "duration") {
+            QByteArray temp = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
+            m_devicePlayList.last().duration = temp.left(temp.indexOf("."));
+        }
         else if(s.section(':', 0, 0) == "coverid")
             m_devicePlayList.last().coverid = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
         else if(s.section(':', 0, 0) == "id")
             m_devicePlayList.last().song_id = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
     }
-    if(m_listEnd < m_devicePlaylistCount) { // we need more data
+    DEBUGF("END" << m_playerTime.elapsed())
+            if(m_listEnd < m_devicePlaylistCount) { // we need more data
         QByteArray tempCommand;
         QByteArray num;
         tempCommand.append("status ");
@@ -217,12 +242,15 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
     if(msg.left(8) == "duration") {  // we're getting length of song
         m_deviceCurrentSongDuration = msg.mid(9, 9-msg.indexOf(".",8));
         m_songDuration = m_deviceCurrentSongDuration.toInt();
-        emit PlayingTime(m_songDuration,m_songPlaying);
+        updateTime();
     }
     else if(msg.left(4) == "time") {
         m_deviceCurrentSongTime = msg.mid(5,5-msg.indexOf(".",4));
         m_songPlaying = m_deviceCurrentSongTime.toInt();
-        emit PlayingTime(m_songDuration,m_songPlaying);
+        updateTime();
+    }
+    else if(msg.left(6)== "client") {
+        return;
     }
     else if(msg.left(16) == "playlist newsong") { // it's a subscribed message regarding a new song playing on the playlist, so process it
         DEBUGF("New Song" << msg);
@@ -239,7 +267,12 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
             //            emit issueCommand(QByteArray("status 0 1000 tags:g,a,l,t,e,y,d,c \n"));
         }
         else {
+            m_currentTrack = m_devicePlayList.at(m_devicePlaylistIndex);
             emit NewSong();
+            m_songDuration = m_currentTrack.duration.toInt();
+            DEBUGF("Track duration =" << m_currentTrack.duration << "or" << m_songDuration);
+            m_songPlaying = 0;
+            updateTime();
         }
     }
     else if(msg.left(19) == "playlist loadtracks") { // it's a subscribed message regarding a new playlist, so process it

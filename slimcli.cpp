@@ -25,7 +25,7 @@ SlimCLI::SlimCLI(QObject *parent,
     cliPort = cliport;          // default, but user can reset
     macAddress = mac;
 
-    MaxRequestSize = "50";     // max size of any cli request (used for limiting each request for albums, artists, songs, etc., so we don't time out or overload things)
+    MaxRequestSize = MAX_REQUEST_SIZE_TEXT;     // max size of any cli request (used for limiting each request for albums, artists, songs, etc., so we don't time out or overload things)
     iTimeOut = 5000;           // number of milliseconds before CLI blocking requests time out
     useAuthentication = false;  // assume we don't need it unless we do
     isAuthenticated = true;     // we will assume that authentication is not used (and therefore we have been authenticated!!)
@@ -145,7 +145,7 @@ void SlimCLI::SendStandardCommand(CliCommand cmd)
         SendCommand(tempCommand);
         break;
     case C_SUBSCRIBE:
-        tempCommand = "subscribe playlist,mixer,pause,sync,client \n";
+        tempCommand = "subscribe playlist,mixer,pause \n";
         SendCommand(tempCommand);
         break;
     case C_NEXTTRACK:

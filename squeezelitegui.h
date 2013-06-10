@@ -11,6 +11,7 @@
 #include <QProcess>
 #include <QHash>
 #include <QHashIterator>
+#include <QTimer>
 
 #include "squeezedefines.h"
 #include "Threads.h"
@@ -98,6 +99,7 @@ private:
     QProcess *player;
     SlimCLI *cli;
     playerInfo *m_playerInfo;
+    QTimer m_tick;
 };
 
 #endif // SQUEEZELITEGUI_H

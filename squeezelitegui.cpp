@@ -97,8 +97,6 @@ void squeezeLiteGui::Init(void)
 
     m_cliThread->start();
     m_interfaceState = INTERFACE_CLI_STARTED;
-
-//    cli->Init();
 }
 
 void squeezeLiteGui::Close(void)
@@ -212,9 +210,14 @@ void squeezeLiteGui::setupInterfaceConnections(void)
     connect(this,SIGNAL(VolumeChange(QVariant)), v,SLOT(setMainVolume(QVariant)));
     connect(this,SIGNAL(songDuration(QVariant)), v,SLOT(setSongDuration(QVariant)));
     connect(this,SIGNAL(progress(QVariant)), v,SLOT(updateProgress(QVariant)));
-
+    connect(m_playerInfo,SIGNAL(PlayingTime(QVariant,QVariant)),
+            v,SLOT(setupSongTimes(QVariant,QVariant)));
+    connect(m_playerInfo,SIGNAL(TimeText(QVariant)),v,SLOT(setTimeText(QVariant)));
 
     connect(m_playerInfo,SIGNAL(NewSong()),this,SLOT(NewSong()));
+    connect(&m_tick,SIGNAL(timeout()),m_playerInfo,SLOT(tick()));
+
+    m_tick.start(1000);
 
 /*
  *  messages from device that need to be connected to slots
@@ -307,10 +310,9 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
 
     m_playerInfo->LockMutex();
 
-    int c = 0;
     QListIterator<TrackData> i = QListIterator<TrackData>(m_playerInfo->GetCurrentPlaylistNoMutex());
     while(i.hasNext()) {
-        DEBUGF("CAPTURING TRACK" << c++);
+        DEBUGF("CAPTURING TRACK" << rowCounter++);
         TrackData track = i.next();
         QString urlString;
         if(track.coverid.isEmpty()) {
@@ -327,10 +329,10 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
                     .arg(QString("cover_40x40"));
         }
         model->appendRow(new ControlListItem(QString(track.title +" - "+track.artist),urlString,QString(track.song_id)));
-        if(++rowCounter % 50 == 0) { // every fifty rows, process events so we don't lock the gui for too long
-            // do we need to unlock the mutex while we process events?
-            qApp->processEvents();
-        }
+//        if(++rowCounter % 50 == 0) { // every fifty rows, process events so we don't lock the gui for too long
+//            // do we need to unlock the mutex while we process events?
+//            qApp->processEvents();
+//        }
     }
     m_playerInfo->UnlockMutex();
 
