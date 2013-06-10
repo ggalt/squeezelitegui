@@ -6,7 +6,7 @@
 #include <QListIterator>
 #include "squeezelitegui.h"
 
-#ifdef SLIMDEVICE_DEBUG
+#ifdef SQUEEZELITEGUI_DEBUG
 #define DEBUGF(...) qDebug() << this->objectName() << Q_FUNC_INFO << __VA_ARGS__;
 #else
 #define DEBUGF(...)
@@ -21,12 +21,19 @@ squeezeLiteGui::squeezeLiteGui(QWindow *parent) :
 
 squeezeLiteGui::~squeezeLiteGui(void)
 {
-    m_cliThread->exit();;
+    m_cliThread->exit();
+    cli->deleteLater();
     m_cliThread->deleteLater();
 
     m_playerInfoThread->exit();
     m_playerInfo->deleteLater();
+    m_playerInfoThread->deleteLater();
     m_interfaceState = INTERFACE_CLOSED;
+
+    QHashIterator<QString,ControlListModel*> i(controlHierarchy);
+    while(i.hasNext())
+        i.value()->deleteLater();
+
     Close();
 }
 
@@ -35,7 +42,6 @@ void squeezeLiteGui::Init(void)
     qmlRegisterType<ControlListModel>("net.galtfamily.controlListModel",1,0,"ControlListModel");
     //    qmlRegisterType<ControlListItem>("net.galtfamily.controllistitem",1,0,"ControlListItem");
     setSource(QUrl::fromLocalFile("qml/squeezelitegui/squeezeliteguimain.qml"));
-    loadHomeScreen();
     show();
 
     QSettings *mySettings = new QSettings("squeezelitegui", "squeezelitegui");
@@ -115,7 +121,7 @@ void squeezeLiteGui::CliReady(void)
 {
     DEBUGF("cliConnected Slot");
 
-    m_playerInfo = new playerInfo();
+    m_playerInfo = new playerInfo(cli,encodedMacAddress);
     m_playerInfoThread = new playerInfoThread(m_playerInfo);
     m_playerInfo->moveToThread(m_playerInfoThread);
 
@@ -138,10 +144,8 @@ void squeezeLiteGui::CliReady(void)
             cli,SLOT(SendCommand(QByteArray)));
 
     // sending cli message to playerinfo
-    connect(cli,SIGNAL(DeviceStatusMessage(QByteArray)),
-            m_playerInfo,SLOT(processDeviceStatusMsg(QByteArray)));
-    connect(cli,SIGNAL(PlaylistInteractionMessage(QByteArray)),
-            m_playerInfo,SLOT(processPlaylistInteractionMsg(QByteArray)));
+    connect(cli,SIGNAL(MessageReady()),
+            m_playerInfo, SLOT(processCliMessage()));
 
     connect(m_playerInfo,SIGNAL(PlayerInfoFilled()),
             this,SLOT(playerInfoReady()));
@@ -158,11 +162,13 @@ void squeezeLiteGui::PlayerStatus(PlayerState s)
     case UNINITIALIZED:
         break;
     case INITIALIZED:
+        emit issueStandardCommand(C_SUBSCRIBE);
         emit issueStandardCommand(C_GETSTATUS);
         break;
     case DATAREADY:
         break;
-    case RUNNING:
+    case NEWPLAYLIST:
+        loadNowPlayingScreen();
         break;
     case ENDING:
         break;
@@ -207,6 +213,9 @@ void squeezeLiteGui::setupInterfaceConnections(void)
     connect(this,SIGNAL(songDuration(QVariant)), v,SLOT(setSongDuration(QVariant)));
     connect(this,SIGNAL(progress(QVariant)), v,SLOT(updateProgress(QVariant)));
 
+
+    connect(m_playerInfo,SIGNAL(NewSong()),this,SLOT(NewSong()));
+
 /*
  *  messages from device that need to be connected to slots
     void playlistIndexChange(QVariant newidx);
@@ -230,6 +239,8 @@ void squeezeLiteGui::refreshScreenSettings(void)
 
 void squeezeLiteGui::loadHomeScreen(void)
 {
+    DEBUGF(QString("http://")+SqueezeBoxServerAddress+QString(":")+SqueezeBoxServerHttpPort+QString("/html/images/artists_40x40.png"));
+
     if( !controlHierarchy.contains("Home")) {
         ControlListModel *model = new ControlListModel(this);
         model->appendRow(new ControlListItem("Music",
@@ -284,11 +295,11 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
 {
     ControlListModel *model;
     int rowCounter = 0;
-    bool replaceModel = false;
+//    bool replaceModel = false;
     if( controlHierarchy.contains("NowPlaying")) {
         model = controlHierarchy.value("NowPlaying");
         model->clear();
-        replaceModel = true;
+//        replaceModel = true;
     }
     else {
         model = new ControlListModel(this);
@@ -296,8 +307,10 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
 
     m_playerInfo->LockMutex();
 
-    QListIterator<TrackData> i = QListIterator<TrackData>(m_playerInfo->getCurrentPlaylist());
+    int c = 0;
+    QListIterator<TrackData> i = QListIterator<TrackData>(m_playerInfo->GetCurrentPlaylistNoMutex());
     while(i.hasNext()) {
+        DEBUGF("CAPTURING TRACK" << c++);
         TrackData track = i.next();
         QString urlString;
         if(track.coverid.isEmpty()) {
@@ -321,7 +334,7 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
     }
     m_playerInfo->UnlockMutex();
 
-    if(replaceModel)
+//    if(replaceModel)
         controlHierarchy.insert("NowPlaying", model);
     rootContext()->setContextProperty("controlListModel", model);
 }
@@ -335,16 +348,25 @@ void squeezeLiteGui::loadNowPlayingScreen(void)
     else {
         rootContext()->setContextProperty("controlListModel", controlHierarchy["NowPlaying"]);
     }
-//    NewSong();
+    NewSong();
 }
 
 void squeezeLiteGui::controlViewClicked(int idx)
 {
 }
 
-void squeezeLiteGui::controlViewClicked(QString s)
+void squeezeLiteGui::controlViewClicked(QString itemClicked)
 {
-
+    DEBUGF("control view clicked with name:" << itemClicked);
+    if(itemClicked=="Music") {
+        loadMusicScreen();
+    }
+    else if (itemClicked=="Home") {
+        loadHomeScreen();
+    }
+    else if(itemClicked=="NowPlaying") {
+        loadNowPlayingScreen();
+    }
 }
 
 void squeezeLiteGui::ModeChange(QString)
@@ -430,12 +452,43 @@ void squeezeLiteGui::volDown(void)
 
 void squeezeLiteGui::NewSong()
 {
+    int currentTrackIndex = m_playerInfo->GetPlaylistIndex();
+    DEBUGF("CONTAINS NOWPLAYING" << controlHierarchy.contains("NowPlaying"));
+    DEBUGF("current track index" << currentTrackIndex);
+    DEBUGF("NowPlaying row count =" << controlHierarchy.value("NowPlaying")->rowCount());
 
+    if(controlHierarchy.contains("NowPlaying") &&
+            controlHierarchy.value("NowPlaying")->rowCount() >= currentTrackIndex) {
+
+        emit playlistIndexChange(QVariant(currentTrackIndex));
+        DEBUGF("emit playlistIndexChange to" << currentTrackIndex);
+        TrackData track = m_playerInfo->GetCurrentPlaylist().at(currentTrackIndex);
+        QString imageURL;
+        if(track.coverid.isEmpty()) {
+            imageURL = QString("http://%1:%2/%3")
+                    .arg(SqueezeBoxServerAddress)
+                    .arg(SqueezeBoxServerHttpPort)
+                    .arg(QString("html/images/artists_300x300.png"));
+        }
+        else {
+            imageURL = QString("http://%1:%2/music/%3/%4")
+                    .arg(SqueezeBoxServerAddress)
+                    .arg(SqueezeBoxServerHttpPort)
+                    .arg(QString(track.coverid))
+                    .arg(QString("cover_300x300"));
+        }
+        emit updateAlbumCover(QVariant(imageURL));
+    }
 }
 
 void squeezeLiteGui::NewPlaylist(void)
 {
-
+    DEBUGF("New Playlist");
+    if(controlHierarchy.contains("NowPlaying")) {
+        ControlListModel *model = controlHierarchy.value("NowPlaying");
+        model->deleteLater();
+        controlHierarchy.remove("NowPlaying");  // delete current playlist
+    }
 }
 
 void squeezeLiteGui::Mute(bool)
@@ -445,7 +498,8 @@ void squeezeLiteGui::Mute(bool)
 
 void squeezeLiteGui::setVolume(int vol)
 {
-
+    QString cmd = QString("mixer volume %1 \n").arg(vol);
+    emit issueCommand(cmd.toLatin1());
 }
 
 

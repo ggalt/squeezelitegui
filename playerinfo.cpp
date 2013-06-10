@@ -1,14 +1,15 @@
 #include "playerinfo.h"
 
-#ifdef SLIMDEVICE_DEBUG
+#ifdef PLAYERINFO_DEBUG
 #define DEBUGF(...) qDebug() << this->objectName() << Q_FUNC_INFO << __VA_ARGS__;
 #else
 #define DEBUGF(...)
 #endif
 
-playerInfo::playerInfo(QObject *parent) :
+playerInfo::playerInfo(SlimCLI *c, QByteArray mac, QObject *parent) :
     QObject(parent)
 {
+    setObjectName("playerInfo");
     m_deviceVol = -1;
     m_deviceMute = true;
     m_deviceMode = MAX_PLAY_MODES;
@@ -18,6 +19,8 @@ playerInfo::playerInfo(QObject *parent) :
     m_songDuration = 0;
     m_songPlaying = 0;
     m_MaxRequestSize = 50;
+    macAddress = mac;
+    cli = c;
 }
 
 void playerInfo::Init(void)
@@ -26,6 +29,36 @@ void playerInfo::Init(void)
     m_deviceState = INITIALIZED;
     m_playerTime.start();
     emit PlayerStatus(m_deviceState);
+}
+
+void playerInfo::processCliMessage(void)
+{
+    DEBUGF("")
+    while(cli->MessageAvailable()) {
+        QByteArray msg = cli->GetMessage();
+
+        QRegExp MACrx("[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]");
+
+        // if it starts with a MAC address, send it to a device for processing
+        if(MACrx.indexIn(QString(msg)) >= 0) {
+            if(macAddress.toLower() == MacAddressOfResponse(msg).toLower()) {
+                QByteArray resp = ResponseLessMacAddress(msg);
+                DEBUGF("MSG with MAC removed:" << resp.left(200));
+                if(resp.startsWith("status")) {
+                    processDeviceStatusMsg(resp);
+                }
+                else {
+                    processPlaylistInteractionMsg(resp);
+                }
+            }
+            else {  // wait!  Whose MAC address is this?
+                DEBUGF(QString("Unknown MAC address: %1 our address is %2").arg(QString(MacAddressOfResponse(msg))).arg(QString(macAddress)));
+            }
+        }
+        else {
+            SystemMsgProcessing(msg);
+        }
+    }
 }
 
 void playerInfo::processDeviceStatusMsg(QByteArray msg)
@@ -38,7 +71,6 @@ void playerInfo::processDeviceStatusMsg(QByteArray msg)
   */
     QMutexLocker m(&mutex);
 
-    m_devicePlayList.clear();
     msg.replace("%3A", ":");
     QList<QByteArray> MsgList = msg.split(' ');    // put all of the status messages into an array for processing
 
@@ -67,7 +99,6 @@ void playerInfo::processDeviceStatusMsg(QByteArray msg)
     else {  // wind through responses until we get to the end of the player information
         while(i.hasNext()){
             QString s = QString(i.next());
-            DEBUGF(s);
             if(s.section(':',0,0)=="playlist_tracks")
                 break;
         }
@@ -118,6 +149,7 @@ void playerInfo::processPlayerSettingsMsg(QListIterator<QByteArray> &i)
             m_devicePlaylistIndex = s.section(':', 1, 1).toInt();
         }
         else if(s.section(':', 0, 0) == "playlist_tracks") {  // OK, we've gotten to the portion of the program where the playlist info is ready
+            DEBUGF("THIS IS THE PLAYLIST TRACK COUNT MESSAGE:" << s);
             m_devicePlaylistCount = s.section(':', 1, 1).toInt();
             m_devicePlayList.clear();
             return;
@@ -167,7 +199,7 @@ void playerInfo::processPlaylistMsg(QListIterator<QByteArray> &i)
         tempCommand.append(" tags:g,a,l,t,e,y,d,c \n");
         emit issueCommand(tempCommand);
     } else {
-        m_deviceState = DATAREADY;
+        m_deviceState = NEWPLAYLIST;
         emit PlayerStatus(m_deviceState);
         emit PlayerInfoFilled();
         emit NewPlayList();
@@ -277,6 +309,11 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
     }
 }
 
+void playerInfo::SystemMsgProcessing(QByteArray msg)
+{
+    DEBUGF("SYSTEM MESSAGE: " << msg);
+}
+
 void playerInfo::ErrorMessageSender(QString s)
 {
     QString msg = objectName()+QString(Q_FUNC_INFO) + s;
@@ -336,3 +373,23 @@ playerMode playerInfo::TogglePlayerMode(playerMode p)
     }
     return MAX_PLAY_MODES;
 }
+
+
+QByteArray playerInfo::MacAddressOfResponse(QByteArray msg)
+{
+    DEBUGF("");
+    if(msg.contains("%3A"))
+        return msg.left(27).trimmed().toLower();
+    else
+        return QByteArray();
+}
+
+QByteArray playerInfo::ResponseLessMacAddress(QByteArray msg)
+{
+    DEBUGF("");
+    if(msg.contains("%3A"))
+        return msg.right(msg.length() - 27).trimmed();
+    else
+        return msg.trimmed();
+}
+

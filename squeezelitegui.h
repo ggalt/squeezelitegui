@@ -9,6 +9,8 @@
 #include <QModelIndex>
 #include <QVariant>
 #include <QProcess>
+#include <QHash>
+#include <QHashIterator>
 
 #include "squeezedefines.h"
 #include "Threads.h"
@@ -45,7 +47,7 @@ public slots:
     void PlayerStatus(PlayerState s);
 
     void controlViewClicked(int idx);
-    void controlViewClicked(QString s);
+    void controlViewClicked(QString itemClicked);
 
     void NewSong();
     void NewPlaylist(void);

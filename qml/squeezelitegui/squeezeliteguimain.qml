@@ -34,6 +34,7 @@ Rectangle {
     signal volDown()
     signal setVolume(int vol)
     signal controlClicked(string s)
+    signal controlPressAndHold(int idx)
 
     onVolumeChanged: {
         if(main.volume>100)
@@ -695,7 +696,7 @@ Rectangle {
                             }
 
                             onPressAndHold: {
-                                controlListView.controlPressAndHold(type)
+                                main.controlPressAndHold(index)
                             }
                         }
                     }

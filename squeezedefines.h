@@ -45,21 +45,12 @@
 #include <iostream>
 
 // uncomment the following to turn on debugging for a particular file
-// #define SQUEEZEMAINWINDOW_DEBUG
-//#define AUDIOPLAYER_DEBUG
-#define SLIMCLI_DEBUG
-#define SLIMDEVICE_DEBUG
-// #define SLIMDATABASE_DEBUG
-// #define SLIMSERVERINFO_DEBUG
-// #define SQUEEZEDISPLAY_DEBUG
-// #define SQUEEZEPICFLOW_DEBUG
-// #define SLIMIMAGECACHE_DEBUG
+//#define SQUEEZELITEGUI_DEBUG
+//#define SLIMCLI_DEBUG
+//#define PLAYERINFO_DEBUG
 
 // forward declaration of classes
 class SlimCLI;
-class SlimDevice;
-class SlimServerInfo;
-class SlimDatabaseFetch;
 
 // Path to directories
 #define DATAPATH "/.squeezelitegui/"
@@ -125,7 +116,7 @@ enum PlayerState
     UNINITIALIZED = 0,
     INITIALIZED,
     DATAREADY,
-    RUNNING,
+    NEWPLAYLIST,
     ENDING,
     MAX_PLAYERSTATE_MODES
 };
@@ -147,6 +138,7 @@ Q_DECLARE_METATYPE(InterfaceState)
 enum CliCommand
 {
     C_GETSTATUS,
+    C_SUBSCRIBE,
     C_NEXTTRACK,
     C_PREVIOUSTRACK,
     C_PLAY,

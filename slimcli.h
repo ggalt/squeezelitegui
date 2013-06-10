@@ -1,21 +1,20 @@
 #ifndef SLIMCLI_H
 #define SLIMCLI_H
 
-// QT4 Headers
+// QT5 Headers
 #include <QObject>
 #include <QTcpSocket>
 #include <QBuffer>
 #include <QTimer>
-#include <QVector>
 #include <QUrl>
 #include <QString>
 #include <QStringList>
 #include <QTime>
 #include <QByteArray>
-#include <QList>
 #include <QPixmap>
-//#include <QFile>
-//#include <QDataStream>
+#include <QQueue>
+#include <QMutex>
+#include <QMutexLocker>
 
 #include "squeezedefines.h"
 
@@ -42,57 +41,27 @@ public:
     bool SendBlockingCommand( QByteArray cmd, QByteArray mac );
     QByteArray GetBlockingCommandResponse( QByteArray cmd );    // send a blocking command and get the response back
 
-    QByteArray MacAddressOfResponse( void );
-    QByteArray ResponseLessMacAddress( void );
     void RemoveNewLineFromResponse( void );
 
     void    SetMACAddress( QString addr );
     QByteArray GetMACAddress( void ) { return macAddress; }
 
+    QByteArray GetMessage(void) { QMutexLocker l(&mutex); return responseQueue.dequeue(); }
+    bool MessageAvailable(void) { QMutexLocker l(&mutex); return !responseQueue.isEmpty(); }
+
 signals:
     void isConnected( void );               // we're connected to the SqueezeCenter server
     void cliError(QString message);
+    void MessageReady(void);
 
-    void DeviceStatusMessage(QByteArray msg);
-    void DevicePlaylistMessage(QByteArray msg);
-    void PlaylistInteractionMessage(QByteArray msg);
+//    void DeviceStatusMessage(QByteArray msg);
+//    void DevicePlaylistMessage(QByteArray msg);
+//    void PlaylistInteractionMessage(QByteArray msg);
 
 public slots:
     void SendStandardCommand(CliCommand cmd);
     void SendCommand( QByteArray cmd );
     void SendCommand( QByteArray cmd, QByteArray mac );
-
-private:
-    void ErrorMessageSender(QString s);
-
-    QTcpSocket *slimCliSocket;// socket for CLI interface
-
-    QByteArray command;       // string to build a command (different from "currCommand" below that is used to check what the CLI sends back
-    QByteArray response;      // buffer to hold CLI response
-    QList<QByteArray> responseList; // command response processed into "tag - response" pairs
-
-    SlimServerInfo *serverInfo;   // convenience pointer
-
-    QByteArray macAddress;       // NOTE: this is stored in URL escaped form, since that is how we mostly use it.  If you need it in plain text COPY IT to another string and use QUrl::decode() on that string.
-    QString SlimServerAddr;   // server IP address
-    quint16 cliPort;          // port to use for cli, usually 9090, but we allow the user to change this
-
-    QString cliUsername;      // username for cli if needed
-    QString cliPassword;      // password for cli if needed **NOTE: DANGER, DANGER this is done in clear text, so don't use a password you care about!!
-    bool useAuthentication;   // test for using authentication
-    bool isAuthenticated;     // have we been authenticated?
-    QByteArray MaxRequestSize;      // max size of any cli request (used for limiting each request for albums, artists, songs, etc., so we don't time out or overload things)
-    int iTimeOut;             // number of milliseconds before CLI blocking requests time out
-
-    void DeviceMsgProcessing( void ); // messages forwarded to devices
-    void SystemMsgProcessing( void ); // messages forwarded to the system for processing
-
-    bool SetupLogin( void );
-
-    void ProcessLoginMsg( void );
-    void ProcessControlMsg( void );
-    void processStatusMsg( void );
-    bool waitForResponse( void );
 
 private slots:
     bool msgWaiting( void );          // we have a message waiting from the server
@@ -101,6 +70,38 @@ private slots:
     void ConnectionError( int err );  // error message sent with connection
     void ConnectionError( QAbstractSocket::SocketError );
     void SentBytes( int b );          // bytes sent to SqueezeCenter
+
+private:
+    void ErrorMessageSender(QString s);
+    bool SetupLogin( void );
+    void ProcessLoginMsg( void );
+//    void ProcessControlMsg( void );
+//    void processStatusMsg( void );
+    bool waitForResponse( void );
+
+private:
+    QTcpSocket *slimCliSocket;// socket for CLI interface
+
+    QByteArray command;       // string to build a command (different from "currCommand" below that is used to check what the CLI sends back
+    QByteArray response;      // buffer to hold CLI response
+    QQueue<QByteArray> responseQueue;     // Queue of responses
+
+
+    QByteArray macAddress;       // NOTE: this is stored in URL escaped form, since that is how we mostly use it.  If you need it in plain text COPY IT to another string and use QUrl::decode() on that string.
+    QString SlimServerAddr;   // server IP address
+    quint16 cliPort;          // port to use for cli, usually 9090, but we allow the user to change this
+    QByteArray MaxRequestSize;
+
+    QString cliUsername;      // username for cli if needed
+    QString cliPassword;      // password for cli if needed **NOTE: DANGER, DANGER this is done in clear text, so don't use a password you care about!!
+    bool useAuthentication;   // test for using authentication
+    bool isAuthenticated;     // have we been authenticated?
+    int iTimeOut;             // number of milliseconds before CLI blocking requests time out
+
+    QMutex mutex;
+
+//    void DeviceMsgProcessing( void ); // messages forwarded to devices
+//    void SystemMsgProcessing( void ); // messages forwarded to the system for processing
 };
 
 

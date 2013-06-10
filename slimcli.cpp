@@ -79,9 +79,6 @@ bool SlimCLI::SetupLogin(void){
 // ------------------------------------------------------------------------------------------------
 
 void SlimCLI::Connect(void){
-    if(!slimCliSocket->isValid()) {
-        DEBUGF("invalid socket");
-    }
     QString myMsg = QString("Connecting to %1 on port %2").arg(SlimServerAddr).arg(cliPort);
     DEBUGF(myMsg);
     slimCliSocket->connectToHost(SlimServerAddr, cliPort);
@@ -142,7 +139,14 @@ void SlimCLI::SendStandardCommand(CliCommand cmd)
     QByteArray tempCommand;
     switch(cmd) {
     case C_GETSTATUS:
-        SendCommand(QByteArray("status 0 0 \n"));
+        tempCommand = "status 0 ";
+        tempCommand.append(MaxRequestSize);
+        tempCommand.append(" tags:g,a,l,t,e,y,d,c \n");
+        SendCommand(tempCommand);
+        break;
+    case C_SUBSCRIBE:
+        tempCommand = "subscribe playlist,mixer,pause,sync,client \n";
+        SendCommand(tempCommand);
         break;
     case C_NEXTTRACK:
         SendCommand(QByteArray("button fwd.single\n"));
@@ -222,7 +226,6 @@ void SlimCLI::SendCommand(QByteArray cmd)
 
 void SlimCLI::SendCommand(QByteArray cmd, QByteArray mac)
 {
-    DEBUGF("Sending command:" << mac << cmd);
     // NOTE:: SendCommand assumes that the command string has been filled in and already been put in URL escape form
     // and that a MAC address is at the beginning of the command (if needed only!!)
     if(!cmd.isNull())
@@ -231,6 +234,7 @@ void SlimCLI::SendCommand(QByteArray cmd, QByteArray mac)
         command = mac +" " + cmd;
     }
 
+    DEBUGF("Sending command" << command);
     if(!command.trimmed().endsWith("\n")) // need to terminate with a \n
         command = command.trimmed() + "\n";
 
@@ -314,15 +318,14 @@ bool SlimCLI::msgWaiting(void)
     while(slimCliSocket->bytesAvailable() && t.elapsed() < iTimeOut) {
         if(slimCliSocket->canReadLine()) {
             response = slimCliSocket->readLine();
-            readSomething=true;
             RemoveNewLineFromResponse();
-            QRegExp MACrx("[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]%3A[0-9a-fA-F][0-9a-fA-F]");
-            if(MACrx.indexIn(QString(response)) >= 0) { // if it starts with a MAC address, send it to a device for processing
-                DeviceMsgProcessing();
-            }
-            else {
-                SystemMsgProcessing();
-            }
+            readSomething=true;
+            mutex.lock();
+            responseQueue.enqueue(response);
+            DEBUGF("Message Queue count = " << responseQueue.size());
+            DEBUGF("Message starts:" << response.left(100));
+            mutex.unlock();
+            emit MessageReady();
         }
     }
     return readSomething;
@@ -333,33 +336,6 @@ bool SlimCLI::msgWaiting(void)
 // ------------------------------------------------------------------------------------------------
 
 
-void SlimCLI::DeviceMsgProcessing(void)
-{
-    DEBUGF("Device Message: " << response.left(200));
-
-    if(macAddress.toLower() == MacAddressOfResponse().toLower()) {
-        QByteArray resp = ResponseLessMacAddress();
-        DEBUGF("MSG with MAC removed:" << resp.left(200));
-        if(resp.startsWith("status 0 0")) {
-            emit DeviceStatusMessage(resp);
-        }
-        else if(resp.startsWith("status")) {
-            emit DevicePlaylistMessage(resp);
-        }
-        else {
-            emit PlaylistInteractionMessage(resp);
-        }
-    }
-    else {  // wait!  Whose MAC address is this?
-        DEBUGF(QString("Unknown MAC address: %1 our address is %2").arg(QString(MacAddressOfResponse())).arg(QString(macAddress)));
-    }
-}
-
-void SlimCLI::SystemMsgProcessing(void)
-{
-    DEBUGF("SYSTEM MESSAGE: " << response);
-}
-
 void SlimCLI::ProcessLoginMsg(void)
 {
     DEBUGF("");
@@ -367,21 +343,21 @@ void SlimCLI::ProcessLoginMsg(void)
         isAuthenticated = true;
 }
 
-void SlimCLI::ProcessControlMsg(void)
-{
-    DEBUGF("CONTROLLING MODE message received: " << response);
-    responseList = response.split(' ');   // break this up into fields delimited by spaces
-    if(response.left(7) == "artists") {  // it's processing artist information
-        if(responseList.at(3).left(9) == "artist_id") {
-            for(int c = 3; c < responseList.size(); c++) {
-            }
-        }
-        return;
-    }
+//void SlimCLI::ProcessControlMsg(void)
+//{
+//    DEBUGF("CONTROLLING MODE message received: " << response);
+//    responseList = response.split(' ');   // break this up into fields delimited by spaces
+//    if(response.left(7) == "artists") {  // it's processing artist information
+//        if(responseList.at(3).left(9) == "artist_id") {
+//            for(int c = 3; c < responseList.size(); c++) {
+//            }
+//        }
+//        return;
+//    }
 
-    if(response.left(6) == "albums" )  // its processing album information
-        return;
-}
+//    if(response.left(6) == "albums" )  // its processing album information
+//        return;
+//}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -399,24 +375,6 @@ void SlimCLI::SetMACAddress(QString addr)
     else
         //        macAddress = addr.toAscii();
         macAddress = addr.toLatin1();
-}
-
-QByteArray SlimCLI::MacAddressOfResponse(void)
-{
-    DEBUGF("");
-    if(response.contains("%3A"))
-        return response.left(27).trimmed().toLower();
-    else
-        return QByteArray();
-}
-
-QByteArray SlimCLI::ResponseLessMacAddress(void)
-{
-    DEBUGF("");
-    if(response.contains("%3A"))
-        return response.right(response.length() - 27).trimmed();
-    else
-        return response.trimmed();
 }
 
 void SlimCLI::RemoveNewLineFromResponse(void)
