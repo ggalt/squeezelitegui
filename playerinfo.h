@@ -12,12 +12,14 @@
 
 #include "squeezedefines.h"
 #include "slimcli.h"
+#include "controllistmodel.h"
 
 class playerInfo : public QObject
 {
     Q_OBJECT
 public:
     explicit playerInfo(SlimCLI *c, QByteArray mac, QObject *parent = 0);
+    ~playerInfo(void);
     void Init(void);
     void LockMutex(void) { mutex.lock(); }
     void UnlockMutex(void) {mutex.unlock(); }
@@ -35,6 +37,7 @@ public:
     int GetTrackPlaytime(void) { QMutexLocker l(&mutex); return m_songPlaying; }
     int GetPlaylistIndex(void) { QMutexLocker l(&mutex); return m_devicePlaylistIndex; }
     int GetPlaylistCount(void) { QMutexLocker l(&mutex); return m_devicePlaylistCount; }
+    ControlListModel *GetCurrentPlaylistModel(void) { QMutexLocker l(&mutex); return m_playlistModel; }
 
     void SetDeviceMode(playerMode m) { QMutexLocker l(&mutex); m_deviceMode = m; } // one of the following: "play", "stop" or "pause"
     void SetRepeatMode(RepeatMode m) { QMutexLocker l(&mutex); m_deviceRepeatMode = m; }
@@ -75,6 +78,7 @@ private:
     void processDeviceStatusMsg(QByteArray msg);
     void processPlaylistInteractionMsg(QByteArray msg);
     void processPlaylistMsg(QListIterator<QByteArray> &i);
+    void addControlListItem(TrackData &track);
     void processPlayerSettingsMsg(QListIterator<QByteArray> &i);
     void SystemMsgProcessing(QByteArray msg);
     QByteArray MacAddressOfResponse(QByteArray msg);
@@ -103,6 +107,7 @@ private:
     quint16 m_listStart;
     quint16 m_listEnd;
     quint16 m_MaxRequestSize;
+    ControlListModel *m_playlistModel;
 
     QTime m_playerTime;   // how long have we been playing?
 

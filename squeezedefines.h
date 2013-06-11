@@ -47,7 +47,7 @@
 // uncomment the following to turn on debugging for a particular file
 //#define SQUEEZELITEGUI_DEBUG
 //#define SLIMCLI_DEBUG
-//#define PLAYERINFO_DEBUG
+#define PLAYERINFO_DEBUG
 
 // forward declaration of classes
 class SlimCLI;

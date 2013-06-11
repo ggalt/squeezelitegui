@@ -37,6 +37,10 @@ public:
     void Init( void );
     void Connect( void );
 
+    QString GetServerAddr(void) { QMutexLocker l(&mutex); return SlimServerAddr; }
+    quint16 GetServerPort(void) { QMutexLocker l(&mutex); return cliPort; }
+
+
     bool SendBlockingCommand( QByteArray cmd );
     bool SendBlockingCommand( QByteArray cmd, QByteArray mac );
     QByteArray GetBlockingCommandResponse( QByteArray cmd );    // send a blocking command and get the response back

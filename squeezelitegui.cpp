@@ -298,11 +298,9 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
 {
     ControlListModel *model;
     int rowCounter = 0;
-//    bool replaceModel = false;
     if( controlHierarchy.contains("NowPlaying")) {
         model = controlHierarchy.value("NowPlaying");
         model->clear();
-//        replaceModel = true;
     }
     else {
         model = new ControlListModel(this);
@@ -329,16 +327,12 @@ void squeezeLiteGui::updateNowPlayingScreen(void)
                     .arg(QString("cover_40x40"));
         }
         model->appendRow(new ControlListItem(QString(track.title +" - "+track.artist),urlString,QString(track.song_id)));
-//        if(++rowCounter % 50 == 0) { // every fifty rows, process events so we don't lock the gui for too long
-//            // do we need to unlock the mutex while we process events?
-//            qApp->processEvents();
-//        }
     }
     m_playerInfo->UnlockMutex();
 
-//    if(replaceModel)
-        controlHierarchy.insert("NowPlaying", model);
+    controlHierarchy.insert("NowPlaying", model);
     rootContext()->setContextProperty("controlListModel", model);
+//    rootContext()->setContextProperty("controlListModel", m_playerInfo->GetCurrentPlaylistModel());
 }
 
 void squeezeLiteGui::loadNowPlayingScreen(void)

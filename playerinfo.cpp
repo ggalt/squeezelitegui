@@ -20,13 +20,21 @@ playerInfo::playerInfo(SlimCLI *c, QByteArray mac, QObject *parent) :
     m_songPlaying = 0;
     m_MaxRequestSize = MAX_REQUEST_SIZE;
     macAddress = mac;
+    m_playlistModel = NULL;
     cli = c;
+}
+
+playerInfo::~playerInfo(void)
+{
+    if( m_playlistModel != NULL )
+        m_playlistModel->deleteLater();
 }
 
 void playerInfo::Init(void)
 {
     DEBUGF("Player Init");
     m_deviceState = INITIALIZED;
+    m_playlistModel = new ControlListModel();
     m_playerTime.start();
     emit PlayerStatus(m_deviceState);
 }
@@ -77,8 +85,10 @@ void playerInfo::updateTime(void)
         m_songPlaying = m_songDuration;
 
     emit PlayingTime(m_songDuration,m_songPlaying);
-    emit TimeText(QVariant(QString("%1:%2 / %3:%4").arg(m_songPlaying/60,2,10,'0').arg(m_songPlaying%60,2,10,'0')
-                  .arg(m_songDuration/60,2,10,'0').arg(m_songDuration%60,2,10,'0')));
+    QString timeStr = QString("%1:%2 / %3:%4").arg(m_songPlaying/60).arg(m_songPlaying%60)
+            .arg(m_songDuration/60).arg(m_songDuration%60);
+    DEBUGF("Time Text:" << timeStr);
+    emit TimeText(QVariant(timeStr));
     m_deviceCurrentSongTime = QByteArray::number(m_songPlaying);
     m_deviceCurrentSongDuration = QByteArray::number(m_songDuration);
 }
@@ -117,6 +127,7 @@ void playerInfo::processDeviceStatusMsg(QByteArray msg)
 
     if(msgStartPos=="0") {  // we haven't yet filled the player setting information
         processPlayerSettingsMsg(i);
+        m_playlistModel->clear();   // empty playlist
     }
     else {  // wind through responses until we get to the end of the player information
         while(i.hasNext()){
@@ -179,12 +190,35 @@ void playerInfo::processPlayerSettingsMsg(QListIterator<QByteArray> &i)
     }
 }
 
+void playerInfo::addControlListItem(TrackData &track)
+{
+    QString urlString;
+    if(track.coverid.isEmpty()) {
+        urlString = QString("http://%1:%2/%3")
+                .arg(cli->GetServerAddr())
+                .arg(cli->GetServerPort())
+                .arg(QString("html/images/artists_40x40.png"));
+    }
+    else {
+        urlString = QString("http://%1:%2/music/%3/%4")
+                .arg(cli->GetServerAddr())
+                .arg(cli->GetServerPort())
+                .arg(QString(track.coverid))
+                .arg(QString("cover_40x40"));
+    }
+    DEBUGF("URL STRING:" << urlString);
+    m_playlistModel->appendRow(new ControlListItem(QString(track.title +" - "+track.artist),urlString,QString(track.song_id)));
+}
+
 void playerInfo::processPlaylistMsg(QListIterator<QByteArray> &i)
 {
     DEBUGF("START" <<  m_playerTime.elapsed());
     while(i.hasNext()) {
         QString s = QString(i.next());
         if(s.section(':', 0, 0) == "playlist%20index") {
+//            if(!m_devicePlayList.isEmpty()) {
+//                addControlListItem(m_devicePlayList.last());
+//            }
             m_devicePlayList.append(TrackData());
             m_devicePlayList.last().playlist_index = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
         }
@@ -211,8 +245,13 @@ void playerInfo::processPlaylistMsg(QListIterator<QByteArray> &i)
         else if(s.section(':', 0, 0) == "id")
             m_devicePlayList.last().song_id = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
     }
-    DEBUGF("END" << m_playerTime.elapsed())
-            if(m_listEnd < m_devicePlaylistCount) { // we need more data
+
+//    if(!m_devicePlayList.isEmpty()) {
+//        addControlListItem(m_devicePlayList.last());
+//    }
+
+    DEBUGF("END" << m_playerTime.elapsed());
+    if(m_listEnd < m_devicePlaylistCount) { // we need more data
         QByteArray tempCommand;
         QByteArray num;
         tempCommand.append("status ");
@@ -352,41 +391,6 @@ void playerInfo::ErrorMessageSender(QString s)
     QString msg = objectName()+QString(Q_FUNC_INFO) + s;
     emit playerInfoError(msg);
 }
-
-//void playerInfo::controlViewClicked(int idx)
-//{
-
-//}
-
-//void playerInfo::controlViewClicked(QString s)
-//{
-
-//}
-
-//void playerInfo::NewSong()
-//{
-
-//}
-
-//void playerInfo::NewPlaylist(void)
-//{
-
-//}
-
-//void playerInfo::Mute(bool)
-//{
-
-//}
-
-//void playerInfo::setVolume(int vol)
-//{
-
-//}
-
-//void playerInfo::ModeChange(QString)
-//{
-
-//}
 
 playerMode playerInfo::TogglePlayerMode(playerMode p)
 {
