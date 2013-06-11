@@ -47,7 +47,7 @@
 // uncomment the following to turn on debugging for a particular file
 //#define SQUEEZELITEGUI_DEBUG
 //#define SLIMCLI_DEBUG
-#define PLAYERINFO_DEBUG
+//#define PLAYERINFO_DEBUG
 
 // forward declaration of classes
 class SlimCLI;
@@ -64,6 +64,7 @@ class SlimCLI;
 
 #define MAX_REQUEST_SIZE 100
 #define MAX_REQUEST_SIZE_TEXT "100"
+#define MAX_PLAYLIST_SIZE 10000
 
 typedef enum { CLI_DISCONNECTED = 0, CLI_CONNECTED, SETUP_SERVER, SETUP_DEVICES, SETUP_IMAGES, CLI_READY } cliState;
 

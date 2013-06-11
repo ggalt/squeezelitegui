@@ -12,6 +12,8 @@
 #include <QHash>
 #include <QHashIterator>
 #include <QTimer>
+#include <QMutex>
+#include <QMutexLocker>
 
 #include "squeezedefines.h"
 #include "Threads.h"
@@ -92,6 +94,12 @@ private:
 
     QHash<QString,ControlListModel*> controlHierarchy;
     QModelIndex *nowPlayingIndex;
+//    ControlListModel* nowPlayingModel;
+//    ControlListModel* artistListModel;
+//    ControlListModel* albumListModel;
+//    QMutex nowPlayingMutex;
+//    QMutex artistListMutex;
+//    QMutex albumListMutex;
 
     cliThread *m_cliThread;
     playerInfoThread *m_playerInfoThread;

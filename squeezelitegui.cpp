@@ -135,16 +135,6 @@ void squeezeLiteGui::CliReady(void)
     connect(this,SIGNAL(issueCommand(QByteArray)),
             cli,SLOT(SendCommand(QByteArray))); // so device can send messages
 
-    // playerinfo command issuing
-    connect(m_playerInfo,SIGNAL(issueStandardCommand(CliCommand)),
-            cli,SLOT(SendStandardCommand(CliCommand)));
-    connect(m_playerInfo,SIGNAL(issueCommand(QByteArray)),
-            cli,SLOT(SendCommand(QByteArray)));
-
-    // sending cli message to playerinfo
-    connect(cli,SIGNAL(MessageReady()),
-            m_playerInfo, SLOT(processCliMessage()));
-
     connect(m_playerInfo,SIGNAL(PlayerInfoFilled()),
             this,SLOT(playerInfoReady()));
     connect(m_playerInfo,SIGNAL(PlayerStatus(PlayerState)),
@@ -422,6 +412,7 @@ void squeezeLiteGui::playState(int state)
         issueStandardCommand(C_PAUSE);
         m_playerInfo->SetDeviceMode(PAUSE);
     }
+    DEBUGF("DEVICE MODE IS NOW:" << m_playerInfo->GetDeviceMode());
 }
 
 void squeezeLiteGui::playPauseToggle(void)

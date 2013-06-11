@@ -17,7 +17,7 @@ playerInfo::playerInfo(SlimCLI *c, QByteArray mac, QObject *parent) :
     m_deviceShuffleMode = MAX_SHUFFLE_MODES;
     m_deviceState = UNINITIALIZED;
     m_songDuration = 1;
-    m_songPlaying = 0;
+    m_songPlayingTime = 0;
     m_MaxRequestSize = MAX_REQUEST_SIZE;
     macAddress = mac;
     m_playlistModel = NULL;
@@ -36,6 +36,17 @@ void playerInfo::Init(void)
     m_deviceState = INITIALIZED;
     m_playlistModel = new ControlListModel();
     m_playerTime.start();
+
+    // playerinfo command issuing
+    connect(this,SIGNAL(issueStandardCommand(CliCommand)),
+            cli,SLOT(SendStandardCommand(CliCommand)));
+    connect(this,SIGNAL(issueCommand(QByteArray)),
+            cli,SLOT(SendCommand(QByteArray)));
+
+    // sending cli message to playerinfo
+    connect(cli,SIGNAL(MessageReady()),
+            this, SLOT(processCliMessage()));
+
     emit PlayerStatus(m_deviceState);
 }
 
@@ -71,25 +82,28 @@ void playerInfo::processCliMessage(void)
 
 void playerInfo::tick(void)
 {
-    DEBUGF("");
+    DEBUGF("DEVICE MODE IS:" << m_deviceMode);
     if(m_deviceMode == PLAY) {
-        m_songPlaying++;
+        m_songPlayingTime++;
         updateTime();
     }
 }
 
 void playerInfo::updateTime(void)
 {
-    DEBUGF("Duration:" << m_songDuration << "Time:" << m_songPlaying);
-    if(m_songPlaying > m_songDuration)
-        m_songPlaying = m_songDuration;
+    DEBUGF("Duration:" << m_songDuration << "Time:" << m_songPlayingTime);
+    if(m_songPlayingTime > m_songDuration)
+        m_songPlayingTime = m_songDuration;
 
-    emit PlayingTime(m_songDuration,m_songPlaying);
-    QString timeStr = QString("%1:%2 / %3:%4").arg(m_songPlaying/60).arg(m_songPlaying%60)
-            .arg(m_songDuration/60).arg(m_songDuration%60);
+    emit PlayingTime(m_songDuration,m_songPlayingTime);
+
+    QTime playingTime = QTime(0,m_songPlayingTime/60,m_songPlayingTime%60);
+    QTime duration = QTime(0,m_songDuration/60,m_songDuration%60);
+    QString timeStr = QString(playingTime.toString("mm:ss") + " of " + duration.toString("mm:ss"));
     DEBUGF("Time Text:" << timeStr);
+//    qDebug() << timeStr << m_songPlayingTime << m_songDuration << playingTime << duration;
     emit TimeText(QVariant(timeStr));
-    m_deviceCurrentSongTime = QByteArray::number(m_songPlaying);
+    m_deviceCurrentSongTime = QByteArray::number(m_songPlayingTime);
     m_deviceCurrentSongDuration = QByteArray::number(m_songDuration);
 }
 
@@ -165,7 +179,7 @@ void playerInfo::processPlayerSettingsMsg(QListIterator<QByteArray> &i)
         else if(s.section(':', 0, 0) == "time") {
             QByteArray tempTime = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
             m_deviceCurrentSongTime = tempTime.mid(0,tempTime.indexOf(".",0));
-            m_songPlaying = m_deviceCurrentSongTime.toInt();
+            m_songPlayingTime = m_deviceCurrentSongTime.toInt();
         }
         else if(s.section(':', 0, 0) == "duration") {
             QByteArray tempTime = QByteArray::fromPercentEncoding(s.section(':', 1, 1).toLatin1());
@@ -285,7 +299,7 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
     }
     else if(msg.left(4) == "time") {
         m_deviceCurrentSongTime = msg.mid(5,5-msg.indexOf(".",4));
-        m_songPlaying = m_deviceCurrentSongTime.toInt();
+        m_songPlayingTime = m_deviceCurrentSongTime.toInt();
         updateTime();
     }
     else if(msg.left(6)== "client") {
@@ -310,7 +324,7 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
             emit NewSong();
             m_songDuration = m_currentTrack.duration.toInt();
             DEBUGF("Track duration =" << m_currentTrack.duration << "or" << m_songDuration);
-            m_songPlaying = 0;
+            m_songPlayingTime = 0;
             updateTime();
         }
     }
@@ -342,27 +356,34 @@ void playerInfo::processPlaylistInteractionMsg(QByteArray msg)
             emit VolumeChange(QVariant(vol));
         }
     }
-    else if(msg.left(5) == "pause") {
-        if(msg.length()==5) { // only the "pause" message meaning to toggle the current state
-            if(m_deviceMode==MAX_PLAY_MODES) {
-                m_deviceMode=PAUSE;
-            } else {
-                m_deviceMode=TogglePlayerMode(m_deviceMode);
-            }
-            //            emit playStatus(QVariant(m_playState));
-        } else if(msg.endsWith("1")) {
-            if(m_deviceMode==MAX_PLAY_MODES) {   // we haven't set this yet, so establish interface status
-                emit playStatus(QVariant(PAUSE));
-            }
+//    else if(msg.left(5) == "pause") {
+//        if(msg.length()==5) { // only the "pause" message meaning to toggle the current state
+//            if(m_deviceMode==MAX_PLAY_MODES) {
+//                m_deviceMode=PAUSE;
+//            } else {
+//                m_deviceMode=TogglePlayerMode(m_deviceMode);
+//            }
+//            //            emit playStatus(QVariant(m_playState));
+//        } else if(msg.endsWith("1")) {
+//            if(m_deviceMode==MAX_PLAY_MODES) {   // we haven't set this yet, so establish interface status
+//                emit playStatus(QVariant(PAUSE));
+//            }
+//            m_deviceMode = PAUSE;
+//        }
+//        else {
+//            if(m_deviceMode==MAX_PLAY_MODES) {   // we haven't set this yet, so establish interface status
+//                emit playStatus(QVariant(PAUSE));
+//                m_deviceMode = PAUSE;
+//            } else
+//                m_deviceMode = PLAY;
+//        }
+//    }
+    else if(msg.left(14) == "playlist pause") {
+        if(msg.trimmed().endsWith('0'))   // start playing
+            m_deviceMode = PLAY;
+        else
             m_deviceMode = PAUSE;
-        }
-        else {
-            if(m_deviceMode==MAX_PLAY_MODES) {   // we haven't set this yet, so establish interface status
-                emit playStatus(QVariant(PAUSE));
-                m_deviceMode = PAUSE;
-            } else
-                m_deviceMode = PLAY;
-        }
+        emit playStatus(QVariant(m_deviceMode));
     }
     else if(msg.left(9) == "mode play") { // current playing mode of "play", "pause" "stop"
         m_deviceMode = PLAY;
@@ -394,6 +415,7 @@ void playerInfo::ErrorMessageSender(QString s)
 
 playerMode playerInfo::TogglePlayerMode(playerMode p)
 {
+    DEBUGF("Toggle Player Mode:" << p)
     switch(p) {
     case PLAY:
         return PAUSE;

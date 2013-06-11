@@ -9,7 +9,6 @@ Rectangle {
     id: main
     property alias volume: currentVol.curVol
     property alias trackDur: durationRect.songDuration
-    property alias durTick: durationRect.durationTick
     property alias trackTime: durationRect.songTime
 
     width: 800
@@ -77,7 +76,6 @@ Rectangle {
 
     function setSongDuration(duration) {
         main.trackDur = duration
-        main.durTick = durationRect.width / duration
     }
 
     function setupSongTimes(duration,position) {
@@ -488,10 +486,9 @@ Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 71
                 property int songDuration: 1
-                property int durationTick: 1
                 property int songTime: 0
 
-                onSongTimeChanged :currentSongTime.width=songTime*durationTick
+                onSongTimeChanged :currentSongTime.width=(durationRect.width * songTime)/songDuration
 
                 Rectangle {
                     id: currentSongTime
@@ -510,15 +507,16 @@ Rectangle {
                 y: 313
                 width: 110
                 height: 16
-                color: "#0ce4d6"
+                color: "#00000000"
 
                 Text {
                     id: timeText
-                    text: qsTr("Text")
+                    color: "#0ce4d6"
+                    text: qsTr("")
+                    font.pointSize: 8
                     anchors.fill: parent
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: 12
                 }
             }
             anchors.rightMargin: 0

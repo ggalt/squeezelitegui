@@ -34,7 +34,7 @@ public:
     PlayerState GetDeviceState(void) { QMutexLocker l(&mutex); return m_deviceState; }
     int GetDeviceVolume(void) { QMutexLocker l(&mutex); return m_deviceVol; }
     int GetTrackDuration(void) { QMutexLocker l(&mutex); return m_songDuration; }
-    int GetTrackPlaytime(void) { QMutexLocker l(&mutex); return m_songPlaying; }
+    int GetTrackPlaytime(void) { QMutexLocker l(&mutex); return m_songPlayingTime; }
     int GetPlaylistIndex(void) { QMutexLocker l(&mutex); return m_devicePlaylistIndex; }
     int GetPlaylistCount(void) { QMutexLocker l(&mutex); return m_devicePlaylistCount; }
     ControlListModel *GetCurrentPlaylistModel(void) { QMutexLocker l(&mutex); return m_playlistModel; }
@@ -98,7 +98,7 @@ private:
     int m_devicePlaylistCount; // number of tracks in current playlist
     int m_devicePlaylistIndex;  // where are we in the current playlist
     int m_songDuration; // duration of the current song in seconds
-    int m_songPlaying;  // amount of time song has been playing
+    int m_songPlayingTime;  // amount of time song has been playing
     QByteArray m_deviceCurrentSongTime; // time into current song
     QByteArray m_deviceCurrentSongDuration; // length of current song
 
